@@ -1,9 +1,11 @@
 import pandas as pd
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+import datetime
 
 PATH = '/usr/bin/chromedriver'
 driver = webdriver.Chrome(PATH)
+date = str(datetime.datetime.now().date())
 
 def acceptCookies():
     try :
@@ -15,7 +17,9 @@ def acceptCookies():
 def scrape(what, where, nbrOfPages = 1):
     
     jobs = []
+    nbr_of_results = 0
     pages = nbrOfPages * 10
+    print('pages to scrape:', nbrOfPages)
     
     for i in range(0, pages, 10):
         
@@ -29,12 +33,20 @@ def scrape(what, where, nbrOfPages = 1):
             pass
 
         acceptCookies()
-        driver.implicitly_wait(3)
+        driver.implicitly_wait(1)
         
-        # WIP
-        # nbr_of_results = driver.find_element(By.ID, 'searchCountPages').text
-        # nbr_of_results = nbr_of_results.strip('Page 1 de ').strip(' emplois')
-        # print(nbr_of_results)
+        # sets number of max pages to scrape according to number of results
+        if nbr_of_results == 0:
+            results = driver.find_element(By.ID, 'searchCountPages').text
+            results = results.strip(' emplois')[10:]
+            nbr_of_results = int(results)
+            max_pages = nbr_of_results // 15
+            print('total results:', nbr_of_results)
+            print('max pages:', max_pages)
+        
+        # breaks loop if maximum page has been been reached
+        if i > max_pages * 10:
+            break
 
         try:
             results = driver.find_elements(By.CLASS_NAME, 'resultWithShelf')
@@ -60,7 +72,7 @@ def scrape(what, where, nbrOfPages = 1):
     
     what = what.replace(' ', '_')
     df = pd.DataFrame(jobs)     
-    df.to_csv(f'jobs_{what}_{where}.csv')
+    df.to_csv(f'indeed_{date}_{what}_{where}.csv')
 
-scrape('computer vision', 'france', 5)
+scrape('machine learning internship', 'france', 10)
 
